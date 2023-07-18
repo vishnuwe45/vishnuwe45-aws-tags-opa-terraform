@@ -1,0 +1,71 @@
+name: 'OPA Terraform Deploy'
+
+on: [push, pull_request]
+defaults:
+      run:
+        shell: bash
+
+jobs:
+  opa-validate:
+    name: 'OPA Validation'
+    runs-on: ubuntu-latest
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_REGION: 'us-west-2'
+
+    steps:
+      - name: 'Checkout'
+        uses: actions/checkout@v2
+
+      - name: 'Terraform Setup'
+        uses: hashicorp/setup-terraform@v1
+        
+      - name: 'Terraform Init'
+        run: terraform init
+      
+
+      - name: 'Terraform Plan'
+        run: terraform plan -out=output
+          
+          
+      - name: 'Terraform plan binary to json'
+        run: |
+         terraform show -json output > plan.json
+      - name: 'Install OPA'
+        run: |
+         curl -L -o opa https://github.com/open-policy-agent/opa/releases/download/v0.32.0/opa_linux_amd64
+         chmod 755 ./opa
+
+         
+      - name: 'output  of opa'
+        run: |
+          cat plan.json | head -2 | tail -1 > valid.json
+          ./opa eval --format pretty --data *.rego --input valid.json data.terraform.deny > test.txt
+          cat test.txt
+      - name: Terraform Deploy the stack
+        id: notify
+        run: |
+          output=$(awk 'BEGIN{c=0} //{c++} END{print c}' RS="[[:space:]]" test.txt)
+          echo $output
+          expected=1
+          echo $expected
+          if [ $expected == $output ]; then
+            result="terraform stakc deployed succesfully"
+            echo "::set-output name=result::OPA policy satsfied, terraform stack deployed succesfully"
+
+            terraform apply -auto-approve
+          else
+            echo "::set-output name=result::OPA policy not satsfied, Please ensure tags are created according to organization policy"
+
+          fi  
+      - name: Slack notification
+  
+        uses: rtCamp/action-slack-notify@v2
+        
+        env:
+              SLACK_MESSAGE: Hello! Event "${{ github.event_name }}" in "${{ github.repository }}" and status is "${{join(steps.notify.outputs.result, '\n')}}"🤓
+              SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+
+ 
+
