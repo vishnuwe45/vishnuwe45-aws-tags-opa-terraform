@@ -59,13 +59,6 @@ jobs:
             echo "::set-output name=result::OPA policy not satsfied, Please ensure tags are created according to organization policy"
 
           fi  
-      - name: Slack notification
-  
-        uses: rtCamp/action-slack-notify@v2
-        
-        env:
-              SLACK_MESSAGE: Hello! Event "${{ github.event_name }}" in "${{ github.repository }}" and status is "${{join(steps.notify.outputs.result, '\n')}}"🤓
-              SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
 
  
 
