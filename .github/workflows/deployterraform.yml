@@ -51,14 +51,8 @@ jobs:
           expected=1
           echo $expected
           if [ $expected == $output ]; then
-            result="terraform stakc deployed succesfully"
-            echo "::set-output name=result::OPA policy satsfied, terraform stack deployed succesfully"
-
-            terraform apply -auto-approve
+            result="terraform stack deployed successfully"
+            echo "::set-output name=result::OPA policy satisfied, terraform stack deployed successfully"
           else
-            echo "::set-output name=result::OPA policy not satsfied, Please ensure tags are created according to organization policy"
-
-          fi  
-
- 
-
+            echo "::set-output name=result::OPA policy not satisfied, Please ensure tags are created according to the organization's policy"
+          fi
